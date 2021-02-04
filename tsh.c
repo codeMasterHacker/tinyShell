@@ -301,9 +301,12 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) //correct input: argv[0] = "bg | fg", argv[1] = "PID | %JID"
 {
+    int newState = (!strcmp(*argv, "fg")) ? FG : BG; //get the new state to implement job control
+
     if (!argv[1]) //user didn't provide an argument
     {
-        printf("Missing PID or JID\n");
+        (newState == FG) ? printf("fg command requires PID or %%jobid argument\n") : printf("bg command requires PID or %%jobid argument\n");
+        
         return;
     }
 
@@ -312,7 +315,8 @@ void do_bgfg(char **argv) //correct input: argv[0] = "bg | fg", argv[1] = "PID |
 
     if (!id) //user provided an argument, just wasn't a PID or JID
     {
-        printf("Command's second argument is neither a PID nor a JID");
+        (newState == FG) ? printf("fg: argument must be a PID or %%jobid\n") : printf("bg: argument must be a PID or %%jobid\n");
+
         return;
     }
 
@@ -320,11 +324,10 @@ void do_bgfg(char **argv) //correct input: argv[0] = "bg | fg", argv[1] = "PID |
 
     if (!job) //user gave an id that doesn't exist
     {
-        printf("PID or JID doesn't exist");
+        (!percent) ? printf("(%d): No such process\n", id) : printf("%%%d: No such job\n", id);
+
         return;
     }
-
-    int newState = (!strcmp(*argv, "fg")) ? FG : BG; //get the new state to implement job control
 
     //bg <job>: Change a stopped background job to a running background job.
     //fg <job>: Change a stopped or running background job to a running in the foreground.
@@ -349,7 +352,7 @@ void do_bgfg(char **argv) //correct input: argv[0] = "bg | fg", argv[1] = "PID |
     job->state = newState; //set new state to the job's state
 
     //if new state is in FG, then wait for it, else print BG info like in lab assignment
-    (newState == FG) ? waitfg(job->state) : printf("[%d] (%d) %s", job->jid, job->pid, job->cmdline);
+    (newState == FG) ? waitfg(job->pid) : printf("[%d] (%d) %s", job->jid, job->pid, job->cmdline);
 
     return;
 }
